@@ -1,26 +1,47 @@
 const router = require('express').Router();
+const sequelize = require('../config/connection');
+const { User, Post, Comment } = require('../models');
 
-const { Post, User, Comment } = require('../models');
 
 router.get('/', (req, res) => {
     Post.findAll({
-
-            include: [
-                User
+            order: [
+                ['created_at', 'DESC']
+            ],
+            attributes: [
+                'id',
+                'title',
+                'text_area',
+                'reference_url',
+                'created_at'
+            ],
+            include: [{
+                    model: User,
+                    attributes: ['username']
+                },
+                {
+                    model: Comment,
+                    attributes: {
+                        exclude: ['updatedAt', 'user_id', 'post_id']
+                    },
+                    include: [{
+                        model: User,
+                        attributes: ['id', 'username']
+                    }]
+                }
             ]
         })
         .then(dbPostData => {
             const posts = dbPostData.map(post => post.get({ plain: true }));
-            console.log(dbPostData[0]);
             res.render('homepage', {
                 posts,
                 loggedIn: req.session.loggedIn
-            });
+            })
         })
         .catch(err => {
             console.log(err);
             res.status(500).json(err);
-        });
+        })
 });
 
 router.get('/login', (req, res) => {
@@ -32,29 +53,34 @@ router.get('/login', (req, res) => {
     res.render('login');
 });
 
+router.get('/sign-up', (req, res) => {
+    res.render('sign-up')
+});
+
 
 router.get('/post/:id', (req, res) => {
     Post.findOne({
             where: {
-                user_name: req.params.id
+                id: req.params.id
             },
             attributes: [
-                'post_id',
-                'post_url',
-                'post_name',
-                'user_name'
+                'id',
+                'title',
+                'text_area',
+                'reference_url',
+                'created_at',
             ],
             include: [{
-                    model: Comment,
-                    attributes: ['comment_name', 'user_name', 'post_id'],
-                    include: {
-                        model: User,
-                        attributes: ['user_name']
-                    }
+                    model: User,
+                    attributes: ['username']
                 },
                 {
-                    model: User,
-                    attributes: ['user_name']
+                    model: Comment,
+                    attributes: ['id', 'text_area', 'post_id', 'user_id', 'created_at'],
+                    include: {
+                        model: User,
+                        attributes: ['username']
+                    }
                 }
             ]
         })
@@ -64,10 +90,10 @@ router.get('/post/:id', (req, res) => {
                 return;
             }
 
-
-
+            // serialize the data
             const post = dbPostData.get({ plain: true });
 
+            // pass data to template
             res.render('single-post', {
                 post,
                 loggedIn: req.session.loggedIn

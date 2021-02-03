@@ -1,66 +1,76 @@
-const router = require('express').Router();
-
-const withAuth = require('../utils/auth');
-
+const sequelize = require('../config/connection');
 const { Post, User, Comment } = require('../models');
-
-
+const router = require('express').Router();
+const withAuth = require('../utils/auth');
 
 router.get('/', withAuth, (req, res) => {
     Post.findAll({
-            attributes: [
-                'post_title',
-                'post_body',
+            order: [
+                ['created_at', 'DESC']
             ],
-
+            where: {
+                user_id: req.session.user_id
+            },
+            attributes: [
+                'id',
+                'title',
+                'text_area',
+                'reference_url',
+                'created_at'
+            ],
             include: [{
-                    model: Comment,
-                    attributes: ['comment_text'],
-                    include: {
-                        model: User,
-                        attributes: ['user_name']
-                    }
+                    model: User,
+                    attributes: ['username']
                 },
                 {
-                    model: User,
-                    attributes: ['user_name']
+                    model: Comment,
+                    attributes: {
+                        exclude: ['updatedAt', 'user_id', 'post_id']
+                    },
+                    include: [{
+                        model: User,
+                        attributes: ['id', 'username']
+                    }]
                 }
             ]
         })
         .then(dbPostData => {
-            // serialize data before passing to template
             const posts = dbPostData.map(post => post.get({ plain: true }));
-            res.render('dashboard', { posts, loggedIn: true });
+            res.render('dashboard', {
+                posts,
+                loggedIn: req.session.loggedIn
+            });
         })
         .catch(err => {
             console.log(err);
             res.status(500).json(err);
-        });
+        })
 });
-
 
 router.get('/edit/:id', withAuth, (req, res) => {
     Post.findOne({
             where: {
-                user_name: req.params.username
+                id: req.params.id
             },
             attributes: [
-                'post_id',
-                'post_url',
-                'user-name',
-                'post_name'
+                'id',
+                'reference_url',
+                'title',
+                'created_at',
             ],
             include: [{
-                    model: Comment,
-                    attributes: ['comment_name', 'user_name', 'post_id'],
-                    include: {
-                        model: User,
-                        attributes: ['user_name']
-                    }
+                    model: User,
+                    attributes: ['username']
                 },
                 {
-                    model: User,
-                    attributes: ['user_name']
+                    model: Comment,
+                    attributes: {
+                        exclude: ['updatedAt', 'user_id', 'post_id']
+                    },
+                    include: [{
+                        model: User,
+                        attributes: ['id', 'username']
+                    }]
                 }
             ]
         })
@@ -70,8 +80,10 @@ router.get('/edit/:id', withAuth, (req, res) => {
                 return;
             }
 
+            // serialize the data
             const post = dbPostData.get({ plain: true });
 
+            // pass data to template
             res.render('edit-post', {
                 post,
                 loggedIn: req.session.loggedIn

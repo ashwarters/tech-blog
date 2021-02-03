@@ -1,0 +1,23 @@
+<div class="dashboard-btn-wrapper">
+  <a class="dashboard-btn" href="/dashboard"> &larr; To Dashboard</a>
+</div>
+
+{{> post-info post}}
+
+{{#if loggedIn}}
+<form class="comment-form">
+  <div>
+    <textarea name="comment-body"></textarea>
+  </div>
+
+  <div>
+    <button type="submit">Add a comment</button>
+  </div>
+</form>
+{{/if}}
+
+{{> comments post.comments}}
+
+{{#if loggedIn}}
+<script src="/js/comment.js"></script>
+{{/if}}
