@@ -18,7 +18,7 @@ async function signupFormHandler(event) {
         if (response.ok) {
             console.log('Success');
         } else {
-            alert(response.statusText);
+            alert('Please click dashboard page');
         }
     }
 };
