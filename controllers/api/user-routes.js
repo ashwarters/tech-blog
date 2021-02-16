@@ -1,6 +1,5 @@
 const router = require('express').Router();
 const { User, Post, Comment } = require('../../models');
-const withAuth = require('../../utils/auth');
 
 
 router.get('/', (req, res) => {
@@ -53,16 +52,17 @@ router.post('/', (req, res) => {
             email: req.body.email,
             password: req.body.password
         })
-        .then(createdUser => {
+        .then(dbUserData => {
             req.session.save(() => {
-                req.session.user_id = createdUser.id;
-                req.session.username = createdUser.username;
+                req.session.user_id = dbUserData.id;
+                req.session.username = dbUserData.username;
                 req.session.loggedIn = true;
 
-                res.json(createdUser);
+                res.json(dbUserData);
             });
         })
         .catch(err => {
+            console.log(err);
             res.status(500).json(err)
         })
 });
@@ -130,10 +130,17 @@ router.delete('/:id', (req, res) => {
                 id: req.params.id
             }
         })
-        .then(dbUserData => { res.json(dbUserData) })
-        .catch(err => {
-            res.status(500).json(err)
+        .then(dbUserData => {
+            if (!dbUserData) {
+                res.status(404).json({ message: 'No user found with this id' });
+                return;
+            }
+            res.json(dbUserData);
         })
+        .catch(err => {
+            console.log(err);
+            res.status(500).json(err);
+        });
 });
 
 module.exports = router;
